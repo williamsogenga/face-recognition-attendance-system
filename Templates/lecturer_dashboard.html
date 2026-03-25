@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lecturer Dashboard</title>
+
+    <a href="/logout" style="
+background:red;
+color:white;
+padding:8px 14px;
+text-decoration:none;
+border-radius:5px;
+float:right;
+">
+Logout
+</a>
+    <style>
+    
+        body{
+            font-family: Arial;
+            background:#f5f6fa;
+            padding:40px;
+        }
+
+        .card{
+            background:white;
+            padding:20px;
+            margin-bottom:15px;
+            border-radius:8px;
+            box-shadow:0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .btn{
+            background:#2f80ed;
+            color:white;
+            padding:8px 14px;
+            text-decoration:none;
+            border-radius:5px;
+        }
+
+        .btn:hover{
+            background:#1c60c7;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Welcome {{ lecturer }}</h2>
+<h3>Your Units</h3>
+
+{% for unit in units %}
+<div class="card">
+    <h4>{{ unit.unit_name }}</h4>
+
+    <a class="btn" href="/unit/{{ unit.unit_id }}">
+        View Attendance
+    </a>
+
+    <a class="btn" href="/start_session/{{ unit.unit_id }}">
+        Start Session
+    </a>
+</div>
+{% endfor %}
+
+</body>
+</html>

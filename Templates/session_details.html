@@ -1,0 +1,29 @@
+<h1>Session Attendance</h1>
+
+Unit: {{ session.unit }}
+Room: {{ session.room }}
+Date: {{ session.started_at }}
+
+<br><br>
+
+<a href="/export/{{ session.session_id }}">
+Download CSV
+</a>
+
+<table border="1">
+
+<tr>
+<th>Name</th>
+<th>Time</th>
+</tr>
+
+{% for s in students %}
+
+<tr>
+<td>{{ s.name }}</td>
+<td>{{ s.marked_at }}</td>
+</tr>
+
+{% endfor %}
+
+</table>

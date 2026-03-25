@@ -1,138 +1,99 @@
 import cv2
-import numpy as np
 import face_recognition
 import os
 import sqlite3
 from datetime import datetime
 
-# ---------------- CONFIG ----------------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-IMAGES_PATH = os.path.join(BASE_DIR, "Images_Attendance")
-MATCH_THRESHOLD = 0.45   # stricter threshold
 
+def run_attendance(session_id, unit, room, DB_PATH):
 
-# ---------------- LOAD MULTIPLE ENCODINGS PER PERSON ----------------
-def load_known_faces():
-    known_faces = {}
+    print("Session:", session_id, unit, room)
 
-    if not os.path.exists(IMAGES_PATH):
-        raise FileNotFoundError("Images folder missing")
+    path = "faces"
 
-    for file in os.listdir(IMAGES_PATH):
-        if file.startswith("."):
-            continue
+    images = []
+    names = []
 
-        path = os.path.join(IMAGES_PATH, file)
-        img = cv2.imread(path)
+    for file in os.listdir(path):
 
-        if img is None:
-            continue
+        img = cv2.imread(f"{path}/{file}")
+        images.append(img)
+        names.append(os.path.splitext(file)[0])
 
-        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        encodings = face_recognition.face_encodings(rgb)
+    def encode_faces(images):
 
-        if len(encodings) == 0:
-            print(f"Skipping {file} (no face)")
-            continue
+        encodings = []
 
-        # Extract name before underscore
-        name = os.path.splitext(file)[0].split("_")[0].upper()
+        for img in images:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            encode = face_recognition.face_encodings(img)[0]
+            encodings.append(encode)
 
-        if name not in known_faces:
-            known_faces[name] = []
+        return encodings
 
-        known_faces[name].append(encodings[0])
+    known_encodings = encode_faces(images)
 
-    if len(known_faces) == 0:
-        raise RuntimeError("No faces loaded")
-
-    print("Loaded faces:", {k: len(v) for k, v in known_faces.items()})
-    return known_faces
-
-
-# ---------------- DATABASE FUNCTION ----------------
-def mark_attendance_sqlite(db_path, session_id, name):
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT 1 FROM attendance
-        WHERE session_id=? AND name=?
-    """, (session_id, name))
-
-    if cur.fetchone() is None:
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        cur.execute("""
-            INSERT INTO attendance(session_id,name,marked_at)
-            VALUES(?,?,?)
-        """, (session_id, name, now))
-        conn.commit()
-
-    conn.close()
-
-
-# ---------------- IMPROVED MATCHING LOGIC ----------------
-def find_best_match(known_faces, face_encoding):
-    best_name = "UNKNOWN"
-    best_distance = 1.0
-
-    for name, enc_list in known_faces.items():
-        distances = face_recognition.face_distance(enc_list, face_encoding)
-        avg_distance = np.mean(distances)
-
-        if avg_distance < best_distance:
-            best_distance = avg_distance
-            best_name = name
-
-    if best_distance > MATCH_THRESHOLD:
-        return "UNKNOWN", best_distance
-
-    return best_name, best_distance
-
-
-# ---------------- MAIN CAMERA FUNCTION ----------------
-def run_attendance(session_id, unit, room, db_path):
-    known_faces = load_known_faces()
-    print(f"Running session: {unit} | {room}")
+    print("Faces Loaded:", names)
 
     cap = cv2.VideoCapture(0)
 
-    if not cap.isOpened():
-        raise RuntimeError("Cannot open webcam")
+    marked = set()
 
     while True:
-        ok, img = cap.read()
-        if not ok:
-            continue
 
-        small = cv2.resize(img, (0, 0), fx=0.25, fy=0.25)
-        small = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
+        success, frame = cap.read()
 
-        face_locations = face_recognition.face_locations(small)
-        face_encodings = face_recognition.face_encodings(small, face_locations)
+        small = cv2.resize(frame, (0,0), None, 0.25, 0.25)
+        rgb = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
 
-        for encoding, loc in zip(face_encodings, face_locations):
-            name, distance = find_best_match(known_faces, encoding)
+        faces = face_recognition.face_locations(rgb)
+        encodings = face_recognition.face_encodings(rgb, faces)
 
-            y1, x2, y2, x1 = loc
-            y1, x2, y2, x1 = y1*4, x2*4, y2*4, x1*4
+        for encodeFace, faceLoc in zip(encodings, faces):
 
-            if name != "UNKNOWN":
-                mark_attendance_sqlite(db_path, session_id, name)
-                color = (0, 255, 0)
-            else:
-                color = (0, 0, 255)
+            matches = face_recognition.compare_faces(known_encodings, encodeFace)
+            distances = face_recognition.face_distance(known_encodings, encodeFace)
 
-            label = f"{name} ({distance:.2f})"
+            matchIndex = distances.argmin()
 
-            cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
-            cv2.rectangle(img, (x1, y2-35), (x2, y2), color, cv2.FILLED)
-            cv2.putText(img, label, (x1+6, y2-6),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,255,255), 2)
+            if matches[matchIndex]:
 
-        cv2.imshow(f"Attendance | {unit}", img)
+                name = names[matchIndex].upper()
 
-        if cv2.waitKey(1) & 0xFF == ord("q"):
+                if name not in marked:
+
+                    conn = sqlite3.connect(DB_PATH)
+                    cur = conn.cursor()
+
+                    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                    cur.execute("""
+                        INSERT INTO attendance (session_id, student_name, marked_at)
+                        VALUES (?, ?, ?)
+                    """, (session_id, name, now))
+
+                    conn.commit()
+                    conn.close()
+
+                    marked.add(name)
+
+                    print("Attendance Marked:", name)
+
+                y1,x2,y2,x1 = faceLoc
+
+                y1*=4
+                x2*=4
+                y2*=4
+                x1*=4
+
+                cv2.rectangle(frame,(x1,y1),(x2,y2),(0,255,0),2)
+                cv2.putText(frame,name,(x1,y2+20),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            1,(255,255,255),2)
+
+        cv2.imshow("Face Attendance", frame)
+
+        if cv2.waitKey(1) == 27:
             break
 
     cap.release()

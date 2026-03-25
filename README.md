@@ -1,29 +1,54 @@
-# Face Recognition-Based Class Attendance System
+# Smart Face Recognition Attendance System
 
-## Project Overview
-This project is an automated attendance management system that uses face recognition technology to detect and identify students in real time and record their attendance digitally.
+A Smart Attendance Management System that uses Face Recognition to automatically mark student attendance. The system includes Admin and Lecturer dashboards, unit-based attendance tracking, and real-time session management.
 
-## Features
-- Face Detection
-- Face Recognition
+---
+
+# Features
+
+- Face Recognition Attendance
+- Admin Dashboard
+- Lecturer Dashboard
+- Unit-based Attendance Tracking
+- Session-based Attendance
 - Automatic Attendance Recording
-- Time and Date Stamping
+- Excel Report Download
+- Real-time Camera Recognition
 - SQLite Database Integration
+- GUI Session Launcher
 
-## Technologies Used
+---
+
+# System Architecture
+
+Admin  
+→ Creates Lecturers  
+→ Assigns Units  
+
+Lecturer  
+→ Logs in  
+→ Starts Session  
+→ Face Recognition Opens  
+→ Attendance Marked  
+
+System  
+→ Stores per Unit  
+→ Stores per Session  
+→ Generates Reports  
+
+---
+
+# Technologies Used
+
 - Python
+- Flask
 - OpenCV
-- face_recognition Library
-- NumPy
+- face_recognition
 - SQLite
+- Tkinter
+- Pandas
+- HTML/CSS
 
-## How to Run
+---
 
-1. Install required libraries:
-pip install -r requirements.txt
-
-2. Run the system:
-python attendance.py
-
-## Academic Project
-Developed as part of a university academic project.
+# Project Structure

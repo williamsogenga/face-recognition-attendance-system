@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Unit Attendance</title>
+    <style>
+        body{
+            font-family: Arial;
+            background:#f5f6fa;
+            padding:40px;
+        }
+
+        table{
+            width:100%;
+            border-collapse: collapse;
+            background:white;
+        }
+
+        th, td{
+            padding:12px;
+            border-bottom:1px solid #ddd;
+            text-align:left;
+        }
+
+        th{
+            background:#2f80ed;
+            color:white;
+        }
+
+        .btn{
+            background:#2f80ed;
+            color:white;
+            padding:8px 14px;
+            text-decoration:none;
+            border-radius:5px;
+        }
+    </style>
+</head>
+<body>
+
+<a class="btn" href="/lecturer">← Back</a>
+
+<h2>Unit Attendance</h2>
+
+<table>
+<tr>
+    <th>ID</th>
+    <th>Student</th>
+    <th>Session</th>
+    <th>Time</th>
+</tr>
+
+{% for r in records %}
+<tr>
+    <td>{{ r.attendance_id }}</td>
+    <td>{{ r.student_name }}</td>
+    <td>{{ r.session_id }}</td>
+    <td>{{ r.marked_at }}</td>
+</tr>
+{% endfor %}
+
+</table>
+
+</body>
+</html>
